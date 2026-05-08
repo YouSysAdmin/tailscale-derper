@@ -45,6 +45,61 @@ docker run -p 80:80 -p 443:443 -p 3478:3478/udp \
        ghcr.io/yousysadmin/tailscale-derper:latest
 ```
 
+### Tailscale sidecar (no host tailscaled required)
+
+If your host doesn't run `tailscaled`, you can run the official `tailscale/tailscale`
+container as a sidecar and share the socket with derper via a Docker volume.
+This uses [userspace networking](https://tailscale.com/kb/1112/userspace-networking),
+so no `NET_ADMIN` capability or `/dev/net/tun` is needed.
+
+Generate an [auth key](https://login.tailscale.com/admin/settings/keys) — ideally
+**ephemeral**, **reusable**, and **pre-approved** — and drop it into the
+`TS_AUTHKEY` env var below.
+
+```yaml
+# docker-compose.yml
+services:
+  tailscaled:
+    image: tailscale/tailscale:latest
+    hostname: my-derper                  # shown in your tailnet
+    environment:
+      - TS_AUTHKEY=tskey-auth-xxxxxxxxxxxx
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=true
+      - TS_SOCKET=/var/run/tailscale/tailscaled.sock
+    volumes:
+      - ts-state:/var/lib/tailscale
+      - ts-sock:/var/run/tailscale
+    restart: unless-stopped
+
+  derper:
+    image: ghcr.io/yousysadmin/tailscale-derper:latest
+    depends_on:
+      - tailscaled
+    ports:
+      - "80:80"
+      - "443:443"
+      - "3478:3478/udp"
+    environment:
+      - DERP_HOSTNAME=derper.example.com
+      - DERP_VERIFY_CLIENTS=true
+      - DERP_SOCKET=/var/run/tailscale/tailscaled.sock
+    volumes:
+      - ts-sock:/var/run/tailscale
+    restart: unless-stopped
+
+volumes:
+  ts-state:
+  ts-sock:
+```
+
+Notes:
+- `depends_on` only waits for the sidecar container to start, not for the socket
+  to appear. derper will exit if the socket isn't ready; `restart: unless-stopped`
+  on both services covers the race on first boot.
+- Store `TS_AUTHKEY` in a `.env` file or your secrets manager — don't commit it.
+- The sidecar node will appear in your tailnet under the `hostname` you set.
+
 ## Environment variables
 
 | ENV variable                         | CLI flag                         | Default value                  | Description                                                                                                                                                                                                                                             |
