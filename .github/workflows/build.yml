@@ -49,20 +49,35 @@ jobs:
           TAGS=$(curl -s -H "Authorization: Bearer ${ENCODED_TOKEN}" \
                https://ghcr.io/v2/${{ env.IMAGE_NAME }}/tags/list)
 
-          ## Check if TAGS is empty or null
+          ## Empty / null response → first build, registry is empty
           if [[ -z "$TAGS" || "$TAGS" == "null" ]]; then
             echo "No tags found, treating as image not existing."
             echo "First build :)"
+            echo DOCKER_IMAGE_EXISTS='no' >> $GITHUB_ENV
+            exit 0
+          fi
+
+          ## Reject API error payloads (e.g. {"errors":[...]}) — don't silently rebuild
+          if echo "$TAGS" | jq -e '.errors' >/dev/null; then
+            echo "Registry returned an error response:"
+            echo "$TAGS"
+            exit 1
+          fi
+
+          ## Require the expected schema before checking membership
+          if ! echo "$TAGS" | jq -e 'has("tags")' >/dev/null; then
+            echo "Unexpected registry response (no .tags field):"
+            echo "$TAGS"
+            exit 1
+          fi
+
+          if echo "$TAGS" | jq -e --arg TAG "${{ env.LATEST_TAILSCALE_VERSION }}" '.tags | index($TAG)' >/dev/null; then
+            echo "Image with tag ${{ env.LATEST_TAILSCALE_VERSION }} already exists."
+            echo DOCKER_IMAGE_EXISTS='yes' >> $GITHUB_ENV
           else
-            ## Check if the specific tag already exists
-            if echo "$TAGS" | jq -e --arg TAG "${{ env.LATEST_TAILSCALE_VERSION }}" '.tags | index($TAG)'; then
-              echo "Image with tag ${{ env.LATEST_TAILSCALE_VERSION }} already exists."
-              echo DOCKER_IMAGE_EXISTS='yes' >> $GITHUB_ENV
-            else
-              echo "Image with tag ${{ env.LATEST_TAILSCALE_VERSION }} not found."
-              echo "An image for the Tailscale version ${{ env.LATEST_TAILSCALE_VERSION }} will be build"
-              echo DOCKER_IMAGE_EXISTS='no' >> $GITHUB_ENV
-            fi
+            echo "Image with tag ${{ env.LATEST_TAILSCALE_VERSION }} not found."
+            echo "An image for the Tailscale version ${{ env.LATEST_TAILSCALE_VERSION }} will be build"
+            echo DOCKER_IMAGE_EXISTS='no' >> $GITHUB_ENV
           fi
 
       ## ----------------------------------------------------------
