@@ -43,6 +43,10 @@ trap 'kill ${!}; sigterm' SIGTERM
     --a="$DERP_ADDR" \
     --accept-connection-burst="$DERP_ACCEPT_CONNECTION_BURST" \
     --accept-connection-limit="$DERP_ACCEPT_CONNECTION_LIMIT" \
+    --ace="$DERP_ACE_ENABLE" \
+    --acme-eab-key="$DERP_ACME_EAB_KEY" \
+    --acme-eab-kid="$DERP_ACME_EAB_KID" \
+    --acme-email="$DERP_ACME_EMAIL" \
     --bootstrap-dns-names="$DERP_BOOTSTRAP_DNS_NAMES" \
     --c="$DERP_CONFIG_FILE" \
     --certdir="$DERP_CERT_DIR" \
@@ -54,6 +58,7 @@ trap 'kill ${!}; sigterm' SIGTERM
     --http-port="$DERP_HTTP_PORT" \
     --mesh-psk-file="$DERP_MESH_PSK_FILE" \
     --mesh-with="$DERP_MESH_WITH" \
+    --rate-config="$DERP_RATE_CONFIG" \
     --secrets-cache-dir="$DERP_SECRETS_CACHE_DIR" \
     --secrets-path-prefix="$DERP_SECRETS_PATH_PREFIX" \
     --secrets-url="$DERP_SECRETS_URL" \
