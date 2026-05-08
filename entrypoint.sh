@@ -58,7 +58,6 @@ trap 'kill ${!}; sigterm' SIGTERM
     --http-port="$DERP_HTTP_PORT" \
     --mesh-psk-file="$DERP_MESH_PSK_FILE" \
     --mesh-with="$DERP_MESH_WITH" \
-    --rate-config="$DERP_RATE_CONFIG" \
     --secrets-cache-dir="$DERP_SECRETS_CACHE_DIR" \
     --secrets-path-prefix="$DERP_SECRETS_PATH_PREFIX" \
     --secrets-url="$DERP_SECRETS_URL" \
