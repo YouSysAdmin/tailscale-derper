@@ -45,7 +45,7 @@ jobs:
 
       - name: Check Github registry that version does not exist
         run: |
-          ENCODED_TOKEN=$(echo -n "${{ secrets.GITHUB_TOKEN }}" | base64)
+          ENCODED_TOKEN=$(echo -n "${{ secrets.GITHUB_TOKEN }}" | base64 -w0)
           TAGS=$(curl -s -H "Authorization: Bearer ${ENCODED_TOKEN}" \
                https://ghcr.io/v2/${{ env.IMAGE_NAME }}/tags/list)
 
