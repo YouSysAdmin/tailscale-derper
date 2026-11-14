@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 cat <<EOF
 
@@ -6,7 +6,7 @@ cat <<EOF
 Start Tailscale DERP Server
 Version: $(/derper/derper -version | sed 's/-.*$//g')
 Bind Addr: $DERP_ADDR
-HTTP Port: $(if [ $DERP_HTTP_PORT != -1 ]; then echo -n "$DERP_HTTP_PORT"; else echo -n "Disabled"; fi)
+HTTP Port: $(if [ "$DERP_HTTP_PORT" != "-1" ]; then printf '%s' "$DERP_HTTP_PORT"; else printf 'Disabled'; fi)
 DERP Enabled: $DERP_DERP_ENABLE
 STUN Enabled: $DERP_STUN_ENABLE
 STUN Port: $DERP_STUN_PORT
@@ -14,32 +14,8 @@ STUN Port: $DERP_STUN_PORT
 
 EOF
 
-pid=0
-
-# SIGUSR1, SIGINT
-user_term() {
-    echo "The Tailscale DERP Server is stopped"
-    if [ $pid -ne 0 ]; then
-      kill -TERM "$pid"
-      wait "$pid"
-    fi
-    exit 0;
-}
-
-# SIGTERM
-sigterm() {
-  echo "The Tailscale DERP Server is stopped"
-  if [ $pid -ne 0 ]; then
-    kill -SIGTERM "$pid"
-    wait "$pid"
-  fi
-  exit 143; # 128 + 15 -- SIGTERM
-}
-
-trap 'kill ${!}; user_term' SIGUSR1 SIGINT
-trap 'kill ${!}; sigterm' SIGTERM
-
-/derper/derper \
+# exec so derper runs as PID 1 and receives SIGTERM/SIGHUP directly
+exec /derper/derper \
     --a="$DERP_ADDR" \
     --accept-connection-burst="$DERP_ACCEPT_CONNECTION_BURST" \
     --accept-connection-limit="$DERP_ACCEPT_CONNECTION_LIMIT" \
@@ -47,17 +23,20 @@ trap 'kill ${!}; sigterm' SIGTERM
     --acme-eab-key="$DERP_ACME_EAB_KEY" \
     --acme-eab-kid="$DERP_ACME_EAB_KID" \
     --acme-email="$DERP_ACME_EMAIL" \
+    --acme-ip-certs="$DERP_ACME_IP_CERTS" \
     --bootstrap-dns-names="$DERP_BOOTSTRAP_DNS_NAMES" \
     --c="$DERP_CONFIG_FILE" \
     --certdir="$DERP_CERT_DIR" \
     --certmode="$DERP_CERT_MODE" \
     --derp="$DERP_DERP_ENABLE" \
     --dev="$DERP_DEV_MODE" \
+    --disallow-app-names="$DERP_DISALLOW_APP_NAMES" \
     --home="$DERP_HOME_PAGE" \
     --hostname="$DERP_HOSTNAME" \
     --http-port="$DERP_HTTP_PORT" \
     --mesh-psk-file="$DERP_MESH_PSK_FILE" \
     --mesh-with="$DERP_MESH_WITH" \
+    --rate-config="$DERP_RATE_CONFIG" \
     --secrets-cache-dir="$DERP_SECRETS_CACHE_DIR" \
     --secrets-path-prefix="$DERP_SECRETS_PATH_PREFIX" \
     --secrets-url="$DERP_SECRETS_URL" \
@@ -71,16 +50,3 @@ trap 'kill ${!}; sigterm' SIGTERM
     --verify-client-url-fail-open="$DERP_VERIFY_CLIENT_URL_FAIL_OPEN" \
     --verify-client-url="$DERP_VERIFY_CLIENT_URL" \
     --verify-clients="$DERP_VERIFY_CLIENTS"
-
-
-if [ $? != 0 ]; then
-  sigterm
-fi
-
-pid="$!"
-
-# wait forever
-while true
-do
-  tail -f /dev/null & wait ${!}
-done

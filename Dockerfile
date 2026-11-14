@@ -15,6 +15,7 @@ ENV DERP_ACE_ENABLE=false
 ENV DERP_ACME_EAB_KEY=""
 ENV DERP_ACME_EAB_KID=""
 ENV DERP_ACME_EMAIL=""
+ENV DERP_ACME_IP_CERTS=false
 ENV DERP_ADDR="0.0.0.0:443"
 ENV DERP_BOOTSTRAP_DNS_NAMES=""
 ENV DERP_CERT_DIR="/derper/certs"
@@ -22,11 +23,13 @@ ENV DERP_CERT_MODE=letsencrypt
 ENV DERP_CONFIG_FILE="/derper/config.json"
 ENV DERP_DERP_ENABLE=true
 ENV DERP_DEV_MODE=false
+ENV DERP_DISALLOW_APP_NAMES=""
 ENV DERP_HOME_PAGE="blank"
 ENV DERP_HOSTNAME="example.com"
 ENV DERP_HTTP_PORT=80
 ENV DERP_MESH_PSK_FILE=""
 ENV DERP_MESH_WITH=""
+ENV DERP_RATE_CONFIG=""
 ENV DERP_SECRETS_CACHE_DIR="/derper/cache/derper-secrets"
 ENV DERP_SECRETS_PATH_PREFIX="prod/derp"
 ENV DERP_SECRETS_URL=""
@@ -46,4 +49,4 @@ RUN mkdir /derper/{certs,cache,keys}
 COPY --from=build /go/bin/derper .
 COPY ./entrypoint.sh /
 
-ENTRYPOINT sh /entrypoint.sh
+ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]

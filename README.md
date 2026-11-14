@@ -5,6 +5,7 @@
 A new version is automatically created, if exists, every Monday at 00:00 UTC.
 
 Registry:
+
 - [GitHub](https://github.com/YouSysAdmin/tailscale-derper/pkgs/container/tailscale-derper)
 
 ```shell
@@ -16,15 +17,17 @@ docker pull ghcr.io/yousysadmin/tailscale-derper:latest
 Official DERP documentation: https://tailscale.com/kb/1118/custom-derp-servers/
 
 ### Minimal
+
 ```shell
 docker run -p 80:80 -p 443:443 -p 3478:3478/udp -e DERP_HOSTNAME=derper.example.com ghcr.io/yousysadmin/tailscale-derper:latest
 ```
 
 ### With Client Verification
+
 If you run DERP on a host with installed `tailscaled` you can use the client verification functionality
 
 > Anyone that knows the IP address of your DERP server could add it to their DERP map and route their tailnet traffic through your DERP server. To allow only your tailnet traffic through your DERP server, run tailscaled on the same device as your DERP server, and start derper with the --verify-clients
-> 
+>
 > [official documentation](https://tailscale.com/kb/1118/custom-derp-servers#optional-verify-client-traffic-to-the-custom-derp-server)
 
 ```shell
@@ -34,7 +37,9 @@ docker run -p 80:80 -p 443:443 -p 3478:3478/udp \
        -v /var/run/tailscale/tailscaled.sock:/var/run/tailscale/tailscaled.sock
        ghcr.io/yousysadmin/tailscale-derper:latest
 ```
+
 You can use the `DERP_SOCKET` environment variable to change the default socket path
+
 ```shell
 ...
 docker run -p 80:80 -p 443:443 -p 3478:3478/udp \
@@ -61,7 +66,7 @@ Generate an [auth key](https://login.tailscale.com/admin/settings/keys) — idea
 services:
   tailscaled:
     image: tailscale/tailscale:latest
-    hostname: my-derper                  # shown in your tailnet
+    hostname: my-derper # shown in your tailnet
     environment:
       - TS_AUTHKEY=tskey-auth-xxxxxxxxxxxx
       - TS_STATE_DIR=/var/lib/tailscale
@@ -94,6 +99,7 @@ volumes:
 ```
 
 Notes:
+
 - `depends_on` only waits for the sidecar container to start, not for the socket
   to appear. derper will exit if the socket isn't ready; `restart: unless-stopped`
   on both services covers the race on first boot.
@@ -103,25 +109,28 @@ Notes:
 ## Environment variables
 
 | ENV variable                         | CLI flag                         | Default value                  | Description                                                                                                                                                                                                                                             |
-|--------------------------------------|----------------------------------|--------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------------------------ | -------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | DERP_ACCEPT_CONNECTION_BURST         | -accept-connection-burst         | 9223372036854775807            | burst limit for accepting new connection                                                                                                                                                                                                                |
 | DERP_ACCEPT_CONNECTION_LIMIT         | -accept-connection-limit         | +Inf                           | rate limit for accepting new connection                                                                                                                                                                                                                 |
 | DERP_ACE_ENABLE                      | -ace                             | false                          | whether to enable embedded ACE server (experimental, undocumented)                                                                                                                                                                                      |
 | DERP_ACME_EAB_KEY                    | -acme-eab-key                    | ""                             | ACME External Account Binding (EAB) HMAC key, base64-encoded (required for --certmode=gcp)                                                                                                                                                              |
 | DERP_ACME_EAB_KID                    | -acme-eab-kid                    | ""                             | ACME External Account Binding (EAB) Key ID (required for --certmode=gcp)                                                                                                                                                                                |
 | DERP_ACME_EMAIL                      | -acme-email                      | ""                             | ACME account contact email address (required for --certmode=gcp, optional for letsencrypt)                                                                                                                                                              |
+| DERP_ACME_IP_CERTS                   | -acme-ip-certs                   | false                          | whether to serve LetsEncrypt certs for the server's IP addresses (short-lived ~6 day ACME profile). Requires --certmode=letsencrypt and port 80 reachable at each IP for the HTTP-01 challenge                                                          |
 | DERP_ADDR                            | -a                               | 0.0.0.0:443                    | server HTTP/HTTPS listen address, in form ":port", "ip:port", or for IPv6 "[ip]:port". If the IP is omitted, it defaults to all interfaces. Serves HTTPS if the port is 443 and/or -certmode is manual, otherwise HTTP.                                 |
 | DERP_BOOTSTRAP_DNS_NAMES             | -bootstrap-dns-names             | ""                             | optional comma-separated list of hostnames to make available at /bootstrap-dns                                                                                                                                                                          |
 | DERP_CERT_DIR                        | -certdir                         | "/derper/certs"                | directory to store ACME (e.g. LetsEncrypt) certs, if addr's port is :443                                                                                                                                                                                |
 | DERP_CERT_MODE                       | -certmode                        | letsencrypt                    | mode for getting a cert. possible options: manual, letsencrypt, gcp                                                                                                                                                                                     |
-| DERP_CONFIG_FILE                     | -c                               | ""                             | config file path                                                                                                                                                                                                                                        |
-| DERP_DERP_ENABLE                     | -derp                            | true                           | 	whether to run a DERP server. The only reason to set this false is if you're decommissioning a server but want to keep its bootstrap DNS functionality still running.                                                                                  |
+| DERP_CONFIG_FILE                     | -c                               | "/derper/config.json"          | config file path                                                                                                                                                                                                                                        |
+| DERP_DERP_ENABLE                     | -derp                            | true                           | whether to run a DERP server. The only reason to set this false is if you're decommissioning a server but want to keep its bootstrap DNS functionality still running.                                                                                   |
 | DERP_DEV_MODE                        | -dev                             | false                          | run in localhost development mode (overrides -a)                                                                                                                                                                                                        |
+| DERP_DISALLOW_APP_NAMES              | -disallow-app-names              | ""                             | optional comma-separated list of client-advertised app names to refuse connections from. Trusted mesh peers are exempt                                                                                                                                  |
 | DERP_HOME_PAGE                       | -home                            | "blank"                        | what to serve at the root path. It may be left empty (the default, for a default homepage), "blank" for a blank page, or a URL to redirect to                                                                                                           |
-| DERP_HOSTNAME                        | -hostname                        | "example.com"                  | TLS host name for certs, if addr's port is :443. When --certmode=manual, this can be an IP address to avoid SNI checks                                                                                                                                  |
+| DERP_HOSTNAME                        | -hostname                        | "example.com"                  | TLS host name for certs, if addr's port is :443. It can be an IP address when --certmode=manual (to avoid SNI checks) or when --acme-ip-certs is set (to run an IP-only server with no hostname cert)                                                   |
 | DERP_HTTP_PORT                       | -http-port                       | 80                             | The port on which to serve HTTP. Set to -1 to disable. The listener is bound to the same IP (if any) as specified in the -a flag.                                                                                                                       |
 | DERP_MESH_PSK_FILE                   | -mesh-psk-file                   | ""                             | if non-empty, path to file containing the mesh pre-shared key file. It must be 64 lowercase hexadecimal characters; whitespace is trimmed                                                                                                               |
 | DERP_MESH_WITH                       | -mesh-with                       | ""                             | optional comma-separated list of hostnames to mesh with; the server's own hostname can be in the list. If an entry contains a slash, the second part names a hostname to be used when dialing the target.                                               |
+| DERP_RATE_CONFIG                     | -rate-config                     | ""                             | if non-empty, path to JSON rate limit config file. Rate limiting is experimental and subject to change. Configuration is reloaded on SIGHUP                                                                                                             |
 | DERP_SECRETS_CACHE_DIR               | -secrets-cache-dir               | "/derper/cache/derper-secrets" | directory to cache setec secrets in (required if --secrets-url is set)                                                                                                                                                                                  |
 | DERP_SECRETS_PATH_PREFIX             | -secrets-path-prefix             | "prod/derp"                    | setec path prefix for "meshkey" secret for DERP mesh key                                                                                                                                                                                                |
 | DERP_SECRETS_URL                     | -secrets-url                     | ""                             | SETEC server URL for secrets retrieval of mesh key                                                                                                                                                                                                      |
@@ -129,8 +138,8 @@ Notes:
 | DERP_STUN_ENABLE                     | -stun                            | true                           | whether to run a STUN server. It will bind to the same IP (if any) as the --addr flag value.                                                                                                                                                            |
 | DERP_STUN_PORT                       | -stun-port                       | 3478                           | The UDP port on which to serve STUN. The listener is bound to the same IP (if any) as specified in the -a flag.                                                                                                                                         |
 | DERP_TCP_KEEPALIVE_TIME              | -tcp-keepalive-time              | "10m0s"                        | TCP keepalive time                                                                                                                                                                                                                                      |
-| DERP_TCP_USER_TIMEOUT                | -tcp-user-timeout                | "15s"                          | TCP user timeout                                                                                                                                                                                                                                        | 
-| DERP_TCP_WRITE_TIMEOUT               | -tcp-write-timeout               | "2s"                           | TCP write timeout; 0 results in no timeout being set on writes                                                                                                                                                                                          | 
+| DERP_TCP_USER_TIMEOUT                | -tcp-user-timeout                | "15s"                          | TCP user timeout                                                                                                                                                                                                                                        |
+| DERP_TCP_WRITE_TIMEOUT               | -tcp-write-timeout               | "2s"                           | TCP write timeout; 0 results in no timeout being set on writes                                                                                                                                                                                          |
 | DERP_UNPUBLISHED_BOOTSTRAP_DNS_NAMES | -unpublished-bootstrap-dns-names | ""                             | optional comma-separated list of hostnames to make available at /bootstrap-dns and not publish in the list. If an entry contains a slash, the second part names a DNS record to poll for its TXT record with a 0 to `100` value for rollout percentage. |
 | DERP_VERIFY_CLIENTS                  | -verify-clients                  | false                          | verify clients to this DERP server through a local tailscaled instance                                                                                                                                                                                  |
 | DERP_VERIFY_CLIENT_URL               | -verify-client-url               | ""                             | if non-empty, an admission controller URL for permitting client connections; see tailcfg.DERPAdmitClientRequest                                                                                                                                         |
